@@ -1,10 +1,10 @@
 `timescale 1ns/1ps
-
-`define DEBUG
+`include "../fpmac/fpmult.sv"
+`include "../fpmac/fpadd.v"
 
 module PE #(
     parameter FILT_SIZE = 3,
-    parameter PSUM_WIDTH = 32)
+    parameter PSUM_WIDTH = 16)
 (
     input logic clk,
     input logic rst,
@@ -47,13 +47,21 @@ logic signed [15:0] filt_active;
 assign filt_active = filt[counter];
 
 
-logic signed [31:0] multiplied;
+logic signed [15:0] multiplied;
 
-fixed_multiplier u_mult(
+// fixed_multiplier u_mult(
+//     .a(ifmap_active),
+//     .b(filt_active),
+//     .mult(multiplied)
+// );
+
+FPMult u_mult(
     .a(ifmap_active),
     .b(filt_active),
-    .mult(multiplied)
+    .p(multiplied)
+    // TODO: logic for snan, qnan, zero, subnormal state handling
 );
+
 
 assign rstAccumulation = (currentState == CLEAR_PREV);
 
@@ -68,17 +76,24 @@ MUX2to1 #(PSUM_WIDTH) mux2 (
     .out(SUM_input2)
 );
 
-
 logic signed [PSUM_WIDTH-1:0] sum_out;
 
-fixed_adder #(
-    .a_size(32),
-    .b_size(PSUM_WIDTH),
-    .outSize(PSUM_WIDTH)
-) adder (
-    .a(multiplied),
-    .b(SUM_input2),
-    .result(sum_out)
+// fixed_adder #(
+//     .a_size(32),
+//     .b_size(PSUM_WIDTH),
+//     .outSize(PSUM_WIDTH)
+// ) adder (
+//     .a(multiplied),
+//     .b(SUM_input2),
+//     .result(sum_out)
+// );
+logic op_add = 1'b0; // add
+
+FPAdd adder (
+    .i_a(multiplied),
+    .i_b(SUM_input2),
+    .o_y(sum_out),
+    .i_op_add_sub(op_add)
 );
 
 // Next state definitions
