@@ -16,6 +16,7 @@
 
 // SIM PARAMETERS:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%:
 #define HALF_PERIOD 5
+#define CYCLE_LEN 5
 
 #define IFMAP_WIDTH 16
 #define FILT_WIDTH 16
@@ -118,13 +119,23 @@ int main(int argc, char* argv[]){
 
     unsigned long long sim_time = 0;
 
-    // reset
-    dut->rst = 0;
+    // reset sequence:
+    // DO NOT MODIFY THE SEQUENCE BELOW:
+    //  IF YOU DO SYNCHRONIZATION OF THE OUTPUT PRINTING 
+    //   CYCLES WITH THE DONE SIGNAL WILL BE BROKEN
+    dut->rst = 1;
+    dut->clk = 0;
     dut->eval();
+    dut->clk = 1;
     dut->rst = 1;
     dut->eval();
     dut->rst = 0;
     dut->start = 1;
+    dut->clk = 0;
+    dut->eval();
+    dut->clk = 1;
+    dut->eval();
+
 
     int tc_i = 0; // test case index
 
@@ -132,22 +143,25 @@ int main(int argc, char* argv[]){
 
     // main loop
     while( !Verilated::gotFinish() && tc_i < n_steps){
-        printf("================= cycle: %d ================", tc_i );
+        printf("================= cycle: %d sim_time: %llu ================", tc_i, sim_time );
 
-        dut->clk = 0;
-        sim_time += HALF_PERIOD;
-        dut->eval();
+        for(int i_eval_cycle = 0; i_eval_cycle < CYCLE_LEN; i_eval_cycle++){
+            dut->clk = 0;
+            sim_time += HALF_PERIOD;
+            dut->eval();
 
+            if (i_eval_cycle == 0){
+                for(int i_dut_in = 0; i_dut_in < FILT_SIZE; i_dut_in++){
+                    dut->ifmap[i_dut_in] = rand_u16t(random);
+                    dut->filt[i_dut_in] = rand_u16t(random);
+                    std::cout << "INPUTS - ifmap[" << i_dut_in << "]: " << std::bitset<IFMAP_WIDTH> (dut->ifmap[i_dut_in]) << " ---- filt[" << i_dut_in << "]: " << std::bitset<FILT_WIDTH> (dut->filt[i_dut_in]) << std::endl;
+                } // for i_dut_in
+            }// if
 
-        for(int i_dut_in = 0; i_dut_in < FILT_SIZE; i_dut_in++){
-            dut->ifmap[i_dut_in] = rand_u16t(random);
-            dut->filt[i_dut_in] = rand_u16t(random);
-            std::cout << "INPUTS - ifmap[" << i_dut_in << "]: " << std::bitset<IFMAP_WIDTH> (dut->ifmap[i_dut_in]) << " ---- filt[" << i_dut_in << "]: " << std::bitset<FILT_WIDTH> (dut->filt[i_dut_in]) << std::endl;
-        } // for i_dut_in
-
-        dut->clk = 1;
-        sim_time += HALF_PERIOD;
-        dut->eval();
+            dut->clk = 1;
+            sim_time += HALF_PERIOD;
+            dut->eval();
+        }
 
         std::cout << "OUTPUT - psum: " << std::bitset<OUTPUT_PSUM_WIDTH> (dut->output_psum) << " ---- done: " << std::bitset<1> (dut->done) << std::endl;
 
