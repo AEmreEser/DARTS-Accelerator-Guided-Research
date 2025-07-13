@@ -3,5 +3,11 @@ This project explores the possibility of accelerating the training loop of the D
 In its current state this project is ongoing at Sabanci University.
 Consult the final report for architectural and progress related details.
 
+
+Advised by: Prof. Özcan Öztürk from Sabanci University and Bilkent University
+
 ## Architectural Specifications
 ![specs](unit-specs.png "High level architectural specification")
+
+
+
